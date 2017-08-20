@@ -19,9 +19,10 @@ void parseMidi(FILE *file) {
 		printf("Invalid MIDI file. Exiting.");
 		exit(-1);
 	}
-
-
-
+	midiFormat =/* buffer[8] << 8 &*/ buffer[9];
+	printf("Format: %d'n", midiFormat);
+	numMidiTracks = /*buffer[10] << 8 &*/ buffer[11];
+	printf("Num Tracks: %d\n", numMidiTracks);
 
 
 	free(buffer);

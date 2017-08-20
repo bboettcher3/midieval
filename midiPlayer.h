@@ -13,6 +13,9 @@ typedef struct _osc {
 } osc;
 
 osc voices[10];
+int midiFormat;
+int numMidiTracks;
+int midiTimeDivision;
 
 //the callback used for getting audio data to read/write
 static int getNextBlock( const void *input,
