@@ -3,6 +3,7 @@
 #include <portaudio.h>
 #include <math.h>
 #include <string.h>
+#include "midi.h"
 
 #define SAMPLE_RATE 44100
 

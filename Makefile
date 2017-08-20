@@ -1,5 +1,5 @@
-HEADERS = midiPlayer.h
-OBJECTS = midiPlayer.o
+HEADERS = midiPlayer.h midi.h
+OBJECTS = midiPlayer.o midi.c
 
 default: midieval
 

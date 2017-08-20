@@ -24,33 +24,38 @@ void processMidiFile(char *filename, midi *MIDI) {
 		exit(-1);
 	}
 	//get the format (0, 1 or 2) of the midi file
-	midiFormat = buffer[8];
-	if (midiFormat > 2 || midiFormat <0) {
+	MIDI->format = buffer[8];
+
+	if (MIDI->format > 2 || MIDI->format < 0) {
 		printf("Invalid MIDI format. Exiting.");
 		exit(-1);
 	}
 	//get the number of tracks in the midi file
-	midi->numTracks = buffer[10];
+	MIDI->numTracks = buffer[10];
+	//allocate space for tracks
+	MIDI->firstTrack = malloc(sizeof(midiTrack));
 	//get tick resolution of midi file
 	float smpteFrames = buffer[12] & 0x7F00;
 	smpteFrames = (29 == smpteFrames) ? 29.97 : smpteFrames;
 	int ticksPerFrame = buffer[12] & 0x00FF;
 	if (buffer[12] & 0x8000) {
 		//set tick resolution
-		midi->tickRes = 100000 / (smpteFrames * ticksPerFrame);
+		MIDI->tickRes = 100000 / (smpteFrames * ticksPerFrame);
 		//set time division
-		midi->timeDiv = FRAMES_PER_SEC;
+		MIDI->timeDiv = FRAMES_PER_SEC;
 	} else {
 		//set tick resolution
-		midi->tickRes = 500000 / buffer[12];
+		MIDI->tickRes = 500000 / buffer[12];
 		//set time division
-		midi->timeDiv = TICKS_PER_BEAT;
+		MIDI->timeDiv = TICKS_PER_BEAT;
 	}
 	//done reading header, on to more important business
 	//set index of buffer to end of header so that we can read data
 	int bufIndex = MIDI_HDR_LEN;
 	int i;
-	for (i = 0; i < midi->numTracks; i++) {
+	midiTrack *curTrack = MIDI->firstTrack;
+	//setup track objects
+	for (i = 0; i < MIDI->numTracks; i++) {
 		//check track header
 		if (buffer[bufIndex] != 0x4D || buffer[bufIndex + 1] != 0x54
 	|| buffer[bufIndex + 2] != 0x72 || buffer[bufIndex + 3] != 0x6B) {
@@ -58,23 +63,31 @@ void processMidiFile(char *filename, midi *MIDI) {
 			exit(-1);
 		}
 		//get the length of the track
-		midi->tracks[i]->length = buffer[bufIndex + 4];
+		curTrack->length = buffer[bufIndex + 4];
 		//check for end of track event
-		if (buffer[bufIndex + TRK_HDR_LEN + (midi->tracks[i]->length - 3)] != 0xFF
-	|| buffer[bufIndex + TRK_HDR_LEN + (midi->tracks[i]->length - 2)] != 0x2F
-	|| buffer[bufIndex + TRK_HDR_LEN + (midi->tracks[i]->length - 1)] != 0x00) {
+		if (buffer[bufIndex + TRK_HDR_LEN + (curTrack->length - 3)] != 0xFF
+	|| buffer[bufIndex + TRK_HDR_LEN + (curTrack->length - 2)] != 0x2F
+	|| buffer[bufIndex + TRK_HDR_LEN + (curTrack->length - 1)] != 0x00) {
 			printf("No end track event found. Exiting");
 			exit(-1);
 		}
 		//set where to read events from track
-		midi->tracks[i]->startIndex = bufIndex + TRK_HDR_LEN;
+		curTrack->startIndex = bufIndex + TRK_HDR_LEN;
 		//update current index in buffer
-		bufIndex += midi->tracks[i]->length + TRK_HDR_LEN;
+		bufIndex += curTrack->length + TRK_HDR_LEN;
+		//increment track
+		if (i == MIDI->numTracks) {
+			curTrack->nextTrack = NULL; //last track, end linked list
+		} else {
+			midiTrack *tempTrack = malloc(sizeof(midiTrack)); //create next track
+			curTrack->nextTrack = tempTrack; //set next track
+			curTrack = curTrack->nextTrack; //go to next track
+		}
 	}
-
-	//parse each track
-
+	//parse each track and populate events
 
 
+
+	//remember to free midi tracks and events
 
 }

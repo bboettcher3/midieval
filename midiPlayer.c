@@ -3,32 +3,6 @@
 float sawPhase;
 PaError err;
 
-void parseMidi(FILE *file) {
-	long fileLen;
-	char *buffer;
-	fseek(file, 0, SEEK_END);
-	fileLen = ftell(file);
-	rewind(file);
-	buffer = (char *)malloc((fileLen + 1) * sizeof(char));
-	fread(buffer, fileLen, 1, file); //read file into buffer
-	fclose(file);
-	//start parsing buffer
-	printf("Parsing midi...\n");
-	if (buffer[0]!= 0x4D || buffer[1] != 0x54 || buffer[2] != 0x68
-		|| buffer[3] != 0x64) {
-		printf("Invalid MIDI file. Exiting.");
-		exit(-1);
-	}
-	midiFormat =/* buffer[8] << 8 &*/ buffer[9];
-	printf("Format: %d'n", midiFormat);
-	numMidiTracks = /*buffer[10] << 8 &*/ buffer[11];
-	printf("Num Tracks: %d\n", numMidiTracks);
-
-
-	free(buffer);
-
-
-}
 
 void updatePhase(osc *oscillator) {
 	double cyclesPerSample = oscillator->frequency / SAMPLE_RATE;
@@ -75,14 +49,11 @@ int main(int argc, char **argv) {
 		printf("Please include only the filename as the parameter\n");
 		return 0;
 	}
-	char *filename = argv[1];
-	FILE *midiFile;
-	midiFile = fopen(filename, "rb");
 
-	parseMidi(midiFile);
+	//create midi pointer to fill in values
+	midi *MIDI = malloc(sizeof(midi));
 
-
-
+	processMidiFile(argv[1], MIDI);
 
 	PaStream *stream;
 
