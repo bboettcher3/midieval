@@ -31,7 +31,7 @@ void processMidiFile(char *filename, midi *MIDI) {
 		exit(-1);
 	}
 	//get the number of tracks in the midi file
-	MIDI->numTracks = buffer[10];
+	MIDI->numTracks = buffer[11];
 	//allocate space for tracks
 	MIDI->firstTrack = malloc(sizeof(midiTrack));
 	//get tick resolution of midi file
@@ -54,6 +54,9 @@ void processMidiFile(char *filename, midi *MIDI) {
 	int bufIndex = MIDI_HDR_LEN;
 	int i;
 	midiTrack *curTrack = MIDI->firstTrack;
+
+	printf("Num Tracks: %d\n", MIDI->numTracks);
+	fflush(stdout);
 	//setup track objects
 	for (i = 0; i < MIDI->numTracks; i++) {
 		//check track header
@@ -73,6 +76,38 @@ void processMidiFile(char *filename, midi *MIDI) {
 		}
 		//set where to read events from track
 		curTrack->startIndex = bufIndex + TRK_HDR_LEN;
+		//populate events in current track
+		bufIndex = curTrack->startIndex;
+		//set current frame to 0
+		int curFrame = 0;
+		//setup first event pointer
+		midiEvent *curEvent = curTrack->firstEvent;
+		int j;
+		//loop through each byte in track looking for status bytes
+		int onCount = 0;
+		int offCount = 0;
+		//which identify note on/off messages
+		for (j = 0; j < curTrack->length; j++) {
+			if ((buffer[bufIndex] & 0x80) == 0x80) {
+				//status byte detected
+				//get frame from previous byte
+				curEvent = malloc(sizeof(midiEvent));
+				if ((buffer[bufIndex] & 0x90) == 0x90) {
+					curEvent->type = NOTE_ON;
+					onCount++;
+				} else {
+					curEvent->type = NOTE_OFF;
+					offCount++;
+				}
+				//make new event and change current event
+				midiEvent *tempEvent;
+				curEvent->nextEvent = tempEvent;
+				curEvent = tempEvent;
+			}
+		}
+
+		printf("On: %d, Off: %d\n", onCount, offCount);
+
 		//update current index in buffer
 		bufIndex += curTrack->length + TRK_HDR_LEN;
 		//increment track
@@ -83,10 +118,9 @@ void processMidiFile(char *filename, midi *MIDI) {
 			curTrack->nextTrack = tempTrack; //set next track
 			curTrack = curTrack->nextTrack; //go to next track
 		}
+
+
 	}
-	//parse each track and populate events
-
-
 
 	//remember to free midi tracks and events
 

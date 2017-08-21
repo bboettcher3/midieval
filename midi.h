@@ -18,6 +18,7 @@ typedef enum {
 typedef struct _midiEvent {
 	eventType type;
 	float frame;
+	int noteNumber;
 	struct _midiEvent *nextEvent;
 } midiEvent;
 
