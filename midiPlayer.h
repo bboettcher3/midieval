@@ -29,4 +29,4 @@ void print_error(void);
 
 void updatePhase(osc *oscillator);
 
-void parseMidi(FILE *file);
+void processMidi(char *filename, midi_event_node_t *firstEventNode);

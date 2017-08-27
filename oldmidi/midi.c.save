@@ -1,0 +1,36 @@
+#include <stdio.h>
+#include "midi.h"
+#include <stdlib.h>
+
+void processMidiFile(char *filename, midi *MIDI) {
+	//setup file
+	FILE *midiFile
+	midiFile = fopen(filename, "rb");
+	long fileLen;
+	char *buffer;
+	fseek(file, 0, SEEK_END);
+	fileLen = ftell(file);
+	rewind(file);
+	buffer = (char *)malloc((fileLen + 1) * sizeof(char));
+	fread(buffer, fileLen, 1, file); //read file into buffer
+	fclose(file);
+	//start parsing buffer
+	printf("Parsing midi...\n");
+	if (buffer[0]!= 0x4D || buffer[1] != 0x54 || buffer[2] != 0x68
+		|| buffer[3] != 0x64) {
+		printf("Invalid MIDI header. Exiting.");
+		exit(-1);
+	}
+	midiFormat = buffer[9];
+	if (midiFormat > 2 || midiFormat < 0) {
+		printf("Invalid MIDI format. Exiting");
+		exit(-1);
+	}
+	//parse header
+
+	//parse each track
+
+
+
+
+}
