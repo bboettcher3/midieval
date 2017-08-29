@@ -3,6 +3,8 @@
 #include <portaudio.h>
 #include <math.h>
 #include <string.h>
+#include <signal.h>
+#include <sys/time.h>
 #include "midi.h"
 
 #define SAMPLE_RATE 44100
@@ -26,6 +28,8 @@ static int getNextBlock( const void *input,
                                       PaStreamCallbackFlags statusFlags,
                                       void *userData ) ;
 void print_error(void);
+
+void alrmHandler(int blah);
 
 void updatePhase(osc *oscillator);
 

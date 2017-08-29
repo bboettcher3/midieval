@@ -1,6 +1,7 @@
 #include "midiPlayer.h"
 
 float sawPhase;
+bool isDone;
 PaError err;
 
 int main(int argc, char **argv) {
@@ -41,6 +42,22 @@ int main(int argc, char **argv) {
 
 	//wait for a bit
 	Pa_Sleep(3*1000);
+    isDone = false;
+
+	struct sigaction sa;
+	memset (&sa, 0, sizeof(sa));
+	sa.sa_handler = alrmHandler;
+	sa.sa_flags = 0;
+	if (sigaction(SIGALRM, &sa, NULL) != 0) {
+		printf("Error setting up alarm\n");
+	}
+	struct itimerval timerMain;
+	timerMain.it_value.tv_sec = 1;
+	timerMain.it_value.tv_usec = 0;
+	setitimer(ITIMER_REAL, &timerMain, NULL);
+    while (!isDone) {
+ 	//setitimer(ITIMER_REAL, )
+    }
 
 	//close stream
 	err = Pa_StopStream(stream);
@@ -153,6 +170,14 @@ void updatePhase(osc *oscillator) {
     double cyclesPerSample = oscillator->frequency / SAMPLE_RATE;
     oscillator->phaseDelta = cyclesPerSample * 2 * M_PI;
     oscillator->phase = oscillator->phase + oscillator->phaseDelta;
+}
+
+void alrmHandler(int blah) {
+	struct itimerval timer;
+	timer.it_value.tv_sec = 1;
+	timer.it_value.tv_usec = 0;
+	setitimer(ITIMER_REAL, &timer, NULL);
+	printf("timer set");
 }
 
 void print_error(void) {
