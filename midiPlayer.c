@@ -54,7 +54,10 @@ int main(int argc, char **argv) {
 	struct itimerval timerMain;
 	timerMain.it_value.tv_sec = 1;
 	timerMain.it_value.tv_usec = 0;
-	setitimer(ITIMER_REAL, &timerMain, NULL);
+	if (setitimer(ITIMER_REAL, &timerMain, NULL) < 0) {
+		printf("Error sending alarm\n");
+		exit(-1);
+	}
     while (!isDone) {
  	//setitimer(ITIMER_REAL, )
     }
@@ -176,8 +179,11 @@ void alrmHandler(int blah) {
 	struct itimerval timer;
 	timer.it_value.tv_sec = 1;
 	timer.it_value.tv_usec = 0;
-	setitimer(ITIMER_REAL, &timer, NULL);
-	printf("timer set");
+	if (setitimer(ITIMER_REAL, &timer, NULL) < 0) {
+		printf("Error setting alarm in handler\n");
+		exit(-1);
+	}
+	printf("timer set\n");
 }
 
 void print_error(void) {
