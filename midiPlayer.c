@@ -54,6 +54,8 @@ int main(int argc, char **argv) {
 	struct itimerval timerMain;
 	timerMain.it_value.tv_sec = 1;
 	timerMain.it_value.tv_usec = 0;
+	timerMain.it_interval.tv_sec = 3;
+	timerMain.it_interval.tv_usec = 0;
 	if (setitimer(ITIMER_REAL, &timerMain, NULL) < 0) {
 		printf("Error sending alarm\n");
 		exit(-1);
@@ -127,8 +129,7 @@ void processMidi(char *filename, midi_event_node_t *firstEventNode) {
                     //note on or off event detected
                     curEventNode->next = track->cur;
                     curEventNode = track->cur;
-
-                    printf("Track data 0: %d, 1: %d\n", curEvent->data[0], curEvent->data[1]);
+                    //printf("Track data 0: %d, 1: %d\n", curEvent->data[0], curEvent->data[1]);
 
                 }
 
@@ -183,7 +184,7 @@ void alrmHandler(int blah) {
 		printf("Error setting alarm in handler\n");
 		exit(-1);
 	}
-	printf("timer set\n");
+	//printf("timer set\n");
 }
 
 void print_error(void) {
