@@ -12,16 +12,18 @@ int main(int argc, char **argv) {
 		return 0;
 	}
 
-    //create first event pointer
-    midi_event_node_t *curEvent;
+	eventNodeMain = malloc(sizeof(midi_event_node_t));
 
-	processMidi(argv[1], curEvent);
+	eventNodeMain = processMidi(argv[1]);
 
 	PaStream *stream;
 
 	Pa_Sleep(1*1000);
 
 	sawPhase = 0;
+
+	printf("-------------- Initializing Audio --------------\n");
+
 	//initialize portAudio
 	err = Pa_Initialize();
 	if (err != paNoError) { print_error(); }
@@ -40,9 +42,11 @@ int main(int argc, char **argv) {
 	err = Pa_StartStream(stream); //begin streaming
 	if (err != paNoError) { print_error(); }
 
+	printf("-------------- Done Initializing Audio --------------\n");
+
 	//wait for a bit
 	Pa_Sleep(3*1000);
-    isDone = false;
+	isDone = false;
 
 	struct sigaction sa;
 	memset (&sa, 0, sizeof(sa));
@@ -52,6 +56,9 @@ int main(int argc, char **argv) {
 		printf("Error setting up alarm\n");
 	}
 	struct itimerval timerMain;
+	//printf("playing note: %d\n", eventNodeMain->event.data[0]);
+	//printf("next note: %d\n", curEventNode->next->event.data[0]);
+	eventNodeMain = eventNodeMain->next;
 	timerMain.it_value.tv_sec = 1;
 	timerMain.it_value.tv_usec = 0;
 	timerMain.it_interval.tv_sec = 3;
@@ -60,9 +67,9 @@ int main(int argc, char **argv) {
 		printf("Error sending alarm\n");
 		exit(-1);
 	}
-    while (!isDone) {
- 	//setitimer(ITIMER_REAL, )
-    }
+    	while (!isDone) {
+
+    	}
 
 	//close stream
 	err = Pa_StopStream(stream);
@@ -70,7 +77,7 @@ int main(int argc, char **argv) {
 	err = Pa_CloseStream(stream);
 	if (err != paNoError) { print_error(); }
 
-
+	//midi_close(
 	//check for input to end program
 	//char input[1];
 	//fgets(input,sizeof(input),stdin);
@@ -84,11 +91,14 @@ int main(int argc, char **argv) {
 	return 0;
 }
 
-void processMidi(char *filename, midi_event_node_t *firstEventNode) {
+midi_event_node_t * processMidi(char *filename) {
 
 	//make midi object
 	midi_t *midi;
 	int status;
+	midi_track_t *track;
+
+	midi_event_node_t *firstEventNode;
 
 	//open midi file
 	status = midi_open(filename, &midi);
@@ -98,12 +108,12 @@ void processMidi(char *filename, midi_event_node_t *firstEventNode) {
 		printf("Failed to open midi file\n");
 		exit(-1);
 	}
-    firstEventNode = NULL;
+
     //loop through tracks and gather events
     for (int i = 0; i < midi->hdr.tracks; i++) {
         int curTime = 0;
         //retrieve midi track
-        midi_track_t *track = midi_get_track(midi, i);
+        track = midi_get_track(midi, i);
         //check for track existence
         if (track == NULL) {
             printf("Failed to find track %d\n", i);
@@ -114,12 +124,14 @@ void processMidi(char *filename, midi_event_node_t *firstEventNode) {
         midi_iter_track(track);
         midi_event_t *curEvent;
         midi_event_node_t *curEventNode;
+	//firstEventNode = track->cur;
+	curEventNode = track->cur;
         while (midi_track_has_next(track)) {
             //assign first event pointer for use by main program
-            if (firstEventNode == NULL) {
-                firstEventNode = track->cur;
-                curEventNode = firstEventNode;
-            }
+            //if (firstEventNode == NULL) {
+            //    firstEventNode = track->cur;
+            //    curEventNode = firstEventNode;
+            //}
 
             curEvent = midi_track_next(track);
 
@@ -138,9 +150,9 @@ void processMidi(char *filename, midi_event_node_t *firstEventNode) {
         }
 
         //free track allocated in midi_get_track
-        midi_free_track(track);
+        //midi_free_track(track);
     }
-
+	return track->head;
 
 }
 
@@ -177,6 +189,14 @@ void updatePhase(osc *oscillator) {
 }
 
 void alrmHandler(int blah) {
+
+	//get note number of current event
+	//printf("Playing note: %d\n", eventNodeMain->event.data[0]);
+	if (eventNodeMain->next == NULL) {
+		isDone = true;
+	} else {
+		eventNodeMain = eventNodeMain->next;
+	}
 	struct itimerval timer;
 	timer.it_value.tv_sec = 1;
 	timer.it_value.tv_usec = 0;

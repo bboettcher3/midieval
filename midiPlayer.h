@@ -19,6 +19,8 @@ osc voices[10];
 int midiFormat;
 int numMidiTracks;
 int midiTimeDivision;
+static midi_event_node_t *eventNodeMain;
+
 
 //the callback used for getting audio data to read/write
 static int getNextBlock( const void *input,
@@ -32,5 +34,4 @@ void print_error(void);
 void alrmHandler(int blah);
 
 void updatePhase(osc *oscillator);
-
-void processMidi(char *filename, midi_event_node_t *firstEventNode);
+midi_event_node_t * processMidi(char *filename);
