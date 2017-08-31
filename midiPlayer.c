@@ -109,6 +109,8 @@ midi_event_node_t * processMidi(char *filename) {
 		exit(-1);
 	}
 
+	//printf("header dd: %d\n", midi->hdr.dd);
+	secs_per_tick = SECS_PER_BEAT / 256;
     //loop through tracks and gather events
     for (int i = 0; i < midi->hdr.tracks; i++) {
         int curTime = 0;
@@ -191,15 +193,28 @@ void updatePhase(osc *oscillator) {
 void alrmHandler(int blah) {
 
 	//get note number of current event
-	//printf("Playing note: %d\n", eventNodeMain->event.data[0]);
+	if (eventNodeMain->event.cmd == MIDI_EVENT_NOTE_ON) {
+		printf("Playing note: %d\n", eventNodeMain->event.data[0]);
+	}
 	if (eventNodeMain->next == NULL) {
 		isDone = true;
+		return;
 	} else {
 		eventNodeMain = eventNodeMain->next;
 	}
+	//get delta time into seconds for timer
+	float dtSecsWhole = eventNodeMain->event.td * secs_per_tick;
+	int dtSecs = (int)dtSecsWhole;
+	float dtUSecs = (dtSecsWhole - dtSecs) * 1000000.0f;
 	struct itimerval timer;
-	timer.it_value.tv_sec = 1;
-	timer.it_value.tv_usec = 0;
+	if (dtSecsWhole == 0.0f) {
+                //set a very small amount of time between consecutive hits
+                dtSecs = 0;
+                dtUSecs = 10.0f;
+        }
+	timer.it_value.tv_sec = dtSecs;
+	timer.it_value.tv_usec = dtUSecs;
+
 	if (setitimer(ITIMER_REAL, &timer, NULL) < 0) {
 		printf("Error setting alarm in handler\n");
 		exit(-1);

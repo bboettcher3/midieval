@@ -8,6 +8,7 @@
 #include "midi.h"
 
 #define SAMPLE_RATE 44100
+#define SECS_PER_BEAT 0.5
 
 typedef struct _osc {
 	float phase;
@@ -19,6 +20,7 @@ osc voices[10];
 int midiFormat;
 int numMidiTracks;
 int midiTimeDivision;
+float secs_per_tick;
 static midi_event_node_t *eventNodeMain;
 
 
