@@ -4,6 +4,7 @@ float sawPhase;
 bool isDone;
 PaError err;
 
+
 int main(int argc, char **argv) {
 
 	//input validation
@@ -167,18 +168,30 @@ static int getNextBlock( const void *inputBuffer, void *outputBuffer,
     (void) inputBuffer; //even if not using input have this to prevent warning
     int i;
 
-
+	//voice *curVoice = firstVoice;
     //loop to write samples
     for (i = 0; i < framesPerBuffer; i++) {
+	voice *curVoice = firstVoice;
+	*out = 0;
+	*(out + 1) = 0;
+	while (curVoice != NULL) {
+		updatePhase(curVoice->oscillator);
+		//printf("phase: %f\n", curVoice->oscillator->phase);
+		*out += (float)sin(2* M_PI * curVoice->oscillator->phase);
+		*(out + 1) += (float)sin(2* M_PI * curVoice->oscillator->phase);
+		curVoice = curVoice->next;
+	}
 
-        *out++ = sawPhase;
-        *out++ = sawPhase;
+	//printf("out 1: %f, out 2: %f\n", *out, *(out+1));
+	out += 2;
+	//*out++ = sawPhase;
+        //*out++ = sawPhase;
 
-        sawPhase += .01f;
+        //sawPhase += .01f;
 
-        if (sawPhase >= 1.0f) {
-            sawPhase -= 2.0f;
-        }
+        //if (sawPhase >= 1.0f) {
+        //    sawPhase -= 2.0f;
+        //}
 
     }
     return 0;
@@ -193,8 +206,45 @@ void updatePhase(osc *oscillator) {
 void alrmHandler(int blah) {
 
 	//get note number of current event
-	if (eventNodeMain->event.cmd == MIDI_EVENT_NOTE_ON) {
+	if (eventNodeMain->event.cmd == MIDI_EVENT_NOTE_ON ||
+		eventNodeMain->event.data[1] != 0) {
 		printf("Playing note: %d\n", eventNodeMain->event.data[0]);
+		//add voice
+		voice *newVoice = malloc(sizeof(voice));
+		newVoice->midiNum = eventNodeMain->event.data[0];
+		newVoice->oscillator = malloc(sizeof(osc));
+		newVoice->oscillator->frequency = mtof(newVoice->midiNum);
+		newVoice->oscillator->phase = 0;
+		newVoice->next = NULL;
+
+		if (firstVoice == NULL) {
+			firstVoice = newVoice;
+			printf("setting first voice\n");
+		} else {
+			voice *curVoice = firstVoice;
+			while (curVoice->next != NULL) {
+				curVoice = curVoice->next;
+			}
+			curVoice->next = newVoice;
+		}
+
+	} else {
+		printf("removing note\n");
+		//remove voice
+		bool wasFound = false;
+		voice *curVoice = firstVoice;
+		while (curVoice->next != NULL) {
+			if (curVoice->next->midiNum == eventNodeMain->event.data[0]) {
+				//free(curVoice->next);
+				//TODO: free this properly
+				curVoice->next = curVoice->next->next;
+				wasFound = true;
+			}
+		}
+		if (!wasFound) {
+			firstVoice = NULL;
+			free(firstVoice);
+		}
 	}
 	if (eventNodeMain->next == NULL) {
 		isDone = true;
@@ -203,7 +253,7 @@ void alrmHandler(int blah) {
 		eventNodeMain = eventNodeMain->next;
 	}
 	//get delta time into seconds for timer
-	float dtSecsWhole = eventNodeMain->event.td * secs_per_tick;
+	float dtSecsWhole = eventNodeMain->next->event.td * secs_per_tick;
 	int dtSecs = (int)dtSecsWhole;
 	float dtUSecs = (dtSecsWhole - dtSecs) * 1000000.0f;
 	struct itimerval timer;
@@ -226,4 +276,8 @@ void print_error(void) {
     Pa_Terminate();
     printf("An error occured with portaudio\n");
     printf("Error : %s\n", Pa_GetErrorText(err));
+}
+
+float mtof(int midiNote) {
+	return mtofarray[midiNote];
 }
