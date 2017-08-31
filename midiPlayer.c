@@ -177,8 +177,8 @@ static int getNextBlock( const void *inputBuffer, void *outputBuffer,
 	while (curVoice != NULL) {
 		updatePhase(curVoice->oscillator);
 		//printf("phase: %f\n", curVoice->oscillator->phase);
-		*out += (float)sin(2* M_PI * curVoice->oscillator->phase);
-		*(out + 1) += (float)sin(2* M_PI * curVoice->oscillator->phase);
+		*out += (float)sin(curVoice->oscillator->phase);
+		*(out + 1) += (float)sin(curVoice->oscillator->phase);
 		curVoice = curVoice->next;
 	}
 
@@ -200,7 +200,7 @@ static int getNextBlock( const void *inputBuffer, void *outputBuffer,
 void updatePhase(osc *oscillator) {
     double cyclesPerSample = oscillator->frequency / SAMPLE_RATE;
     oscillator->phaseDelta = cyclesPerSample * 2 * M_PI;
-    oscillator->phase = oscillator->phase + oscillator->phaseDelta;
+    oscillator->phase += oscillator->phaseDelta;
 }
 
 void alrmHandler(int blah) {
