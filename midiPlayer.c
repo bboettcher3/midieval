@@ -1,5 +1,6 @@
 #include "midiPlayer.h"
 
+int numVoices;
 float sawPhase;
 bool isDone;
 PaError err;
@@ -7,6 +8,7 @@ PaError err;
 
 int main(int argc, char **argv) {
 
+	numVoices = 0;
 	//input validation
 	if (argc != 2) {
 		printf("Please include only the filename as the parameter\n");
@@ -17,6 +19,8 @@ int main(int argc, char **argv) {
 
 	eventNodeMain = processMidi(argv[1]);
 
+	printf("First event vel: %d\n", eventNodeMain->event.data[1]);
+	printf("First event note: %d\n", eventNodeMain->event.data[0]);
 	PaStream *stream;
 
 	Pa_Sleep(1*1000);
@@ -59,7 +63,7 @@ int main(int argc, char **argv) {
 	struct itimerval timerMain;
 	//printf("playing note: %d\n", eventNodeMain->event.data[0]);
 	//printf("next note: %d\n", curEventNode->next->event.data[0]);
-	eventNodeMain = eventNodeMain->next;
+	//eventNodeMain = eventNodeMain->next;
 	timerMain.it_value.tv_sec = 1;
 	timerMain.it_value.tv_usec = 0;
 	timerMain.it_interval.tv_sec = 3;
@@ -99,7 +103,7 @@ midi_event_node_t * processMidi(char *filename) {
 	int status;
 	midi_track_t *track;
 
-	midi_event_node_t *firstEventNode;
+	midi_event_node_t *firstEventNode = NULL;
 
 	//open midi file
 	status = midi_open(filename, &midi);
@@ -129,6 +133,8 @@ midi_event_node_t * processMidi(char *filename) {
         midi_event_node_t *curEventNode;
 	//firstEventNode = track->cur;
 	curEventNode = track->cur;
+
+	midi_event_node_t *tempEventNode;
         while (midi_track_has_next(track)) {
             //assign first event pointer for use by main program
             //if (firstEventNode == NULL) {
@@ -136,6 +142,7 @@ midi_event_node_t * processMidi(char *filename) {
             //    curEventNode = firstEventNode;
             //}
 
+		tempEventNode = track->cur;
             curEvent = midi_track_next(track);
 
             if (curEvent->type == MIDI_TYPE_EVENT) {
@@ -145,6 +152,10 @@ midi_event_node_t * processMidi(char *filename) {
                     curEventNode->next = track->cur;
                     curEventNode = track->cur;
                     //printf("Track data 0: %d, 1: %d\n", curEvent->data[0], curEvent->data[1]);
+			if (firstEventNode == NULL) {
+                                firstEventNode = tempEventNode;
+                                //printf("First event set: %d, %d\n",
+                        }
 
                 }
 
@@ -155,8 +166,15 @@ midi_event_node_t * processMidi(char *filename) {
         //free track allocated in midi_get_track
         //midi_free_track(track);
     }
-	return track->head;
 
+	//for debugging purposes, print out all events
+	midi_event_node_t *curEventNode = firstEventNode;
+	while (curEventNode->next != NULL) {
+		printf("Data: %d, %d\n", curEventNode->event.data[0], curEventNode->event.data[1]);
+		curEventNode = curEventNode->next;
+	}
+
+	return firstEventNode;
 }
 
 static int getNextBlock( const void *inputBuffer, void *outputBuffer,
@@ -194,6 +212,7 @@ static int getNextBlock( const void *inputBuffer, void *outputBuffer,
         //}
 
     }
+	//printf("Voices: %d\n", numVoices);
     return 0;
 }
 
@@ -205,11 +224,13 @@ void updatePhase(osc *oscillator) {
 
 void alrmHandler(int blah) {
 
+	//printf("Event received: %d, %d\n", eventNodeMain->event.data[0], eventNodeMain->event.data[1]);
+
 	//get note number of current event
-	if (eventNodeMain->event.cmd == MIDI_EVENT_NOTE_ON ||
-		eventNodeMain->event.data[1] != 0) {
+	if (eventNodeMain->event.data[1] != 0) {
 		printf("Playing note: %d\n", eventNodeMain->event.data[0]);
 		//add voice
+		numVoices++;
 		voice *newVoice = malloc(sizeof(voice));
 		newVoice->midiNum = eventNodeMain->event.data[0];
 		newVoice->oscillator = malloc(sizeof(osc));
@@ -230,9 +251,14 @@ void alrmHandler(int blah) {
 
 	} else {
 		printf("removing note\n");
+		numVoices--;
 		//remove voice
 		bool wasFound = false;
 		voice *curVoice = firstVoice;
+		if (curVoice == NULL) {
+			printf("whoops!\n");
+		}
+
 		while (curVoice->next != NULL) {
 			if (curVoice->next->midiNum == eventNodeMain->event.data[0]) {
 				//free(curVoice->next);
@@ -243,7 +269,8 @@ void alrmHandler(int blah) {
 		}
 		if (!wasFound) {
 			firstVoice = NULL;
-			free(firstVoice);
+			//free(firstVoice);
+			printf("first voice removed\n");
 		}
 	}
 	if (eventNodeMain->next == NULL) {
