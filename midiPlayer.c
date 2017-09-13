@@ -248,9 +248,16 @@ void alrmHandler(int blah) {
 			}
 			curVoice->next = newVoice;
 		}
+		//print out all notes for debugging
+		voice *curVoice = firstVoice;
+		while (curVoice->next != NULL) {
+			printf(" %d ", curVoice->midiNum);
+			curVoice = curVoice->next;
+		}
+		printf("%d.\n", curVoice->midiNum);
 
 	} else {
-		printf("removing note\n");
+		printf("removing note: %d\n", eventNodeMain->event.data[0]);
 		numVoices--;
 		//remove voice
 		bool wasFound = false;
@@ -258,17 +265,29 @@ void alrmHandler(int blah) {
 		if (curVoice == NULL) {
 			printf("whoops!\n");
 		}
-
+		//if (curVoice->midiNum == eventNodeMain->event.data[0]) {
+		//	firstVoice->next = NULL;
+		//	firstVoice = NULL;
+		//	printf("Note %d removed from first\n", curVoice->midiNum);
+		//}
 		while (curVoice->next != NULL) {
+			//printf("Cycling Midi Num: %d\n", curVoice->midiNum);
 			if (curVoice->next->midiNum == eventNodeMain->event.data[0]) {
 				//free(curVoice->next);
 				//TODO: free this properly
-				curVoice->next = curVoice->next->next;
+				voice *tempVoice = curVoice->next->next;
+				curVoice->next = tempVoice;
 				wasFound = true;
+				break;
 			}
+			curVoice = curVoice->next;
 		}
 		if (!wasFound) {
-			firstVoice = NULL;
+			if (firstVoice->next != NULL) {
+				firstVoice = firstVoice->next;
+			} else {
+				firstVoice = NULL;
+			}
 			//free(firstVoice);
 			printf("first voice removed\n");
 		}
