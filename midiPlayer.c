@@ -145,17 +145,19 @@ midi_event_node_t * processMidi(char *filename) {
 		tempEventNode = track->cur;
             curEvent = midi_track_next(track);
 
-            if (curEvent->type == MIDI_TYPE_EVENT) {
+            if (curEvent->type == MIDI_TYPE_EVENT && curEvent->data[0] != 70 && curEvent->data[0] != 9) {
                 if (curEvent->cmd == MIDI_EVENT_NOTE_ON ||
                         curEvent->cmd == MIDI_EVENT_NOTE_OFF) {
                     //note on or off event detected
-                    curEventNode->next = track->cur;
-                    curEventNode = track->cur;
-                    //printf("Track data 0: %d, 1: %d\n", curEvent->data[0], curEvent->data[1]);
 			if (firstEventNode == NULL) {
                                 firstEventNode = tempEventNode;
-                                //printf("First event set: %d, %d\n",
-                        }
+                                curEventNode = firstEventNode;
+				//printf("First event set: %d, %d\n",
+                        } else {
+				curEventNode->next = track->cur;
+				curEventNode = track->cur;
+                    	}
+				//printf("Track data 0: %d, 1: %d\n", curEvent->data[0], curEvent->data[1]);
 
                 }
 
@@ -184,8 +186,12 @@ static int getNextBlock( const void *inputBuffer, void *outputBuffer,
                          void *userData ) {
     float *out = (float*) outputBuffer;
     (void) inputBuffer; //even if not using input have this to prevent warning
-    int i;
 
+	(void) timeInfo; /* Prevent unused variable warnings. */
+        (void) statusFlags;
+ 	(void) inputBuffer;
+
+    int i;
 	//voice *curVoice = firstVoice;
     //loop to write samples
     for (i = 0; i < framesPerBuffer; i++) {
@@ -193,12 +199,24 @@ static int getNextBlock( const void *inputBuffer, void *outputBuffer,
 	*out = 0;
 	*(out + 1) = 0;
 	while (curVoice != NULL) {
-		updatePhase(curVoice->oscillator);
+		//updatePhase(curVoice->oscillator);
+		float sampleVal = (float)sin(curVoice->oscillator->frequency * 2.0 * M_PI * (float)i / SAMPLE_RATE);
+		//printf("sample val: %d\n", sampleVal);
 		//printf("phase: %f\n", curVoice->oscillator->phase);
-		*out += (float)sin(curVoice->oscillator->phase);
-		*(out + 1) += (float)sin(curVoice->oscillator->phase);
+		//*out += (float)sin(curVoice->oscillator->phase);
+		//*(out + 1) += (float)sin(curVoice->oscillator->phase);
+		//*out += sampleVal * .7f;
+		//*(out + 1) += sampleVal * .7f;
+		//float testVal = (float)sin(440 * 2 * M_PI * i / SAMPLE_RATE);
+		//*out += testVal;
+		//*(out + 1) += testVal;
+
 		curVoice = curVoice->next;
 	}
+
+	float testVal = (float)sin(800 * 2 * M_PI * i / SAMPLE_RATE);
+                *out += testVal;
+                *(out + 1) += testVal;
 
 	//printf("out 1: %f, out 2: %f\n", *out, *(out+1));
 	out += 2;
@@ -227,7 +245,9 @@ void alrmHandler(int blah) {
 	//printf("Event received: %d, %d\n", eventNodeMain->event.data[0], eventNodeMain->event.data[1]);
 
 	//get note number of current event
-	if (eventNodeMain->event.data[1] != 0) {
+	//check if note on event was detected
+	if (eventNodeMain->event.data[1] != 0 && 
+		eventNodeMain->event.cmd != MIDI_EVENT_NOTE_OFF) {
 		printf("Playing note: %d\n", eventNodeMain->event.data[0]);
 		//add voice
 		numVoices++;
@@ -255,7 +275,7 @@ void alrmHandler(int blah) {
 			curVoice = curVoice->next;
 		}
 		printf("%d.\n", curVoice->midiNum);
-
+	//otherwise a note off event must have been detected, so remove note
 	} else {
 		printf("removing note: %d\n", eventNodeMain->event.data[0]);
 		numVoices--;
